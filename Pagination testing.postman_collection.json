@@ -1,0 +1,213 @@
+{
+	"info": {
+		"_postman_id": "0f5e97a5-3348-4c59-8654-62d030ef0aaa",
+		"name": "Pagination testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "GET ALL",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "36278a3a-9e84-4625-9407-a99ad65bceaf",
+						"exec": [
+							"",
+							"// Don't change these",
+							"pm.environment.set(\"pagenumber\", \"1\");",
+							"var dict = {};",
+							"pm.environment.set(\"dict\", dict);",
+							"pm.environment.set(\"firstrun\", \"true\");",
+							"//pm.iterationData.set(\"version\", \"{{v16.0.0}}\");",
+							"",
+							"// You can change these",
+							"pm.environment.set(\"offset\", \"0\");",
+							"pm.environment.set(\"limit\", \"100\");",
+							"//pm.environment.set(\"endpoint\", \"student-unverified-grades\");",
+							"//pm.environment.set(\"endpoint\", \"ledger-activities\");",
+							"//pm.environment.set(\"endpoint\", \"courses\");",
+							"//pm.environment.set(\"endpoint\", \"student-transcript-grades\");",
+							"pm.environment.set(\"endpoint\", \"sections\");",
+							"//pm.environment.set(\"endpoint\", \"persons\");"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "f0735041-b04c-4a28-ab9b-2fafd4f3a405",
+						"exec": [
+							"// Paginated endpoint tester\r",
+							"// Note variables set in Pre-request script: offset, limit, dict, and endpoint\r",
+							"// Note variable expected from environment:\r",
+							"//   -  url (the base url of the Colleague api), e.g. http://localhost/Ellucian.Colleague.Api\r",
+							"// Note this expects auth to be handled in the environment (user/pass variables)\r",
+							"\r",
+							"\r",
+							"var endpoint = pm.variables.get(\"endpoint\");\r",
+							"var firstrun = pm.variables.get(\"firstrun\");\r",
+							"var jsonData = JSON.parse(responseBody);\r",
+							"var totalcount;\r",
+							"\r",
+							"var offset = parseInt(pm.variables.get(\"offset\"));\r",
+							"if (firstrun == 'true'){\r",
+							"    var testmsg = `Testing endpoint: ${endpoint}`; \r",
+							"    tests[testmsg] = true;\r",
+							"    totalcount = parseInt(postman.getResponseHeader(\"X-Total-Count\"));\r",
+							"    pm.variables.set(\"totalcount\", totalcount);\r",
+							"    pm.variables.set(\"firstrun\", \"false\");\r",
+							"}else{\r",
+							"    totalcount = pm.variables.get(\"totalcount\");\r",
+							"}\r",
+							"var limit =  parseInt(pm.variables.get(\"limit\"));\r",
+							"var pagenumber =  parseInt(pm.variables.get(\"pagenumber\"));\r",
+							"var dict =  parseInt(pm.variables.get(\"dict\"));\r",
+							"\r",
+							"//tests[\"offset = \" + offset] = true;\r",
+							"//tests[\"limit = \" + limit] = true;\r",
+							"\r",
+							"var success = (pm.response.code == 200);\r",
+							"if (!success){\r",
+							"    tests[pm.response.text()] = false;\r",
+							"}else{\r",
+							"    \r",
+							"    var recordcnt = jsonData ? jsonData.length.toString() : \"0\";\r",
+							"    \r",
+							"    var msg = `Fetched ${recordcnt} records in page ${pagenumber} from offset ${offset} with limit ${limit} of ${totalcount} total records`;\r",
+							"    tests[msg] = true;\r",
+							"    \r",
+							"    // get the top level guids from the response and stick them in a dictionary\r",
+							"    \r",
+							"    if (jsonData)\r",
+							"    {\r",
+							"        var counter = jsonData.length;\r",
+							"        for(let i = 0; i < counter; i++)\r",
+							"        {\r",
+							"            if (jsonData[i] && jsonData[i].id){\r",
+							"                var guid = jsonData[i].id;\r",
+							"                var testvalue = parseInt(dict[jsonData[i].id]) + 1;\r",
+							"                if (isNaN(testvalue)) testvalue = 1;\r",
+							"                dict[guid] = testvalue;\r",
+							"                //console.log(`storing ${guid} in dictionary count ${testvalue}`);\r",
+							"                if(testvalue > 1){\r",
+							"                    var errmsg = `ERROR: guid ${guid} duplicated in response on page ${pagenumber} from offset ${offset} with limit ${limit}`; \r",
+							"                    tests[errmsg] = false;\r",
+							"                }\r",
+							"                \r",
+							"            }\r",
+							"        }\r",
+							"        pm.variables.set(\"dict\", dict);\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"if (offset + limit < totalcount){\r",
+							"    offset += limit;\r",
+							"    pagenumber += 1;\r",
+							"    \r",
+							"    pm.variables.set(\"offset\", offset);\r",
+							"    pm.variables.set(\"pagenumber\", pagenumber);\r",
+							"    postman.setNextRequest(\"GET ALL\");\r",
+							"}else{\r",
+							"    \r",
+							"    // we have reached the end - one more loop through the dict shouldn't be necessary\r",
+							"    // check anything else...?\r",
+							"}\r",
+							"\r",
+							"pm.environment.set(\"variable_key\", \"variable_value\");"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{pass}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{user}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "{{version}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{url}}/{{endpoint}}?offset={{offset}}&limit={{limit}}",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"{{endpoint}}"
+					],
+					"query": [
+						{
+							"key": "offset",
+							"value": "{{offset}}"
+						},
+						{
+							"key": "limit",
+							"value": "{{limit}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "password",
+				"value": "{{pass}}",
+				"type": "string"
+			},
+			{
+				"key": "username",
+				"value": "{{user}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "0e5f1de4-4953-41e4-8bc4-c3ef060f6913",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "7fbc186e-ba00-492f-8e44-abe2f0e9f0d9",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
